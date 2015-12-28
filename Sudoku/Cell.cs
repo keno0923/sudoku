@@ -7,11 +7,20 @@ using System.Drawing;
 
 namespace Sudoku
 {
+    public enum ValueFlag
+    {
+        Prohibited,
+        Unknown,
+        Decided
+    }
+
     public class Cell
     {
         readonly public Point index;
+        public int X { get { return index.X; } }
+        public int Y { get { return index.Y; } }
         readonly public int Group;
-        public int[] pros;  //  0で入らない、1で分からない、2で入ってる
+        public ValueFlag[] flag;  //  0で入らない、1で分からない、2で入ってる
         public int value
         {
             get; protected set;
@@ -20,42 +29,42 @@ namespace Sudoku
         public Cell(int x,int y)
         {
             index = new Point(x, y);
-            pros = new List<int>(new int[10]).Select(t=>1).ToArray();
+            flag = new List<ValueFlag>(new ValueFlag[10]).Select(t=> ValueFlag.Unknown).ToArray();
             value = -1;
             Group = ((y-1) / 3) * 3 + ( (x-1) / 3 ) + 1; 
         }
 
         public String GetProsString()
         {
-            return pros.Aggregate<int, String>(@"",
+            return flag.Aggregate<ValueFlag, String>(@"",
                 (ret, val) =>
                 {
                     switch (val)
                     {
-                        case 0: return ret + "F";
-                        case 1: return ret + "?";
-                        case 2: return ret + "T";
+                        case ValueFlag.Prohibited: return ret + "F";
+                        case ValueFlag.Unknown: return ret + "?";
+                        case ValueFlag.Decided: return ret + "T";
+                        default: throw new NotImplementedException();
                     }
-                    return ret;
                 }
                 ).Substring(1);
         }
 
         public bool setTrueValue(int val)
         {
-            if (val < 1 || val >= 8) return false;
-            if (pros[val] == 0) return false;
+            if (val < 1 || val >= 10) return false;
+            if (flag[val] == 0) return false;
             value = val;
-            pros = pros.Select(x => 0).ToArray();
-            pros[val] = 2;
+            flag = flag.Select(x => ValueFlag.Prohibited).ToArray();
+            flag[val] = ValueFlag.Decided;
             return true;
         }
 
         public bool setFalseValue(int val)
         {
-            if (val < 1 || val >= 8) return false;
-            if (pros[val] == 2) return false;
-            pros[val] = 0;
+            if (val < 1 || val >= 10) return false;
+            if (flag[val] == ValueFlag.Decided) return false;
+            flag[val] = ValueFlag.Prohibited;
             return true;
         }
 

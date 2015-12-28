@@ -14,15 +14,20 @@ namespace Sudoku
     {
         public int SelectedIndex
         {
-            get { return comboBox1.SelectedIndex; }
+            get {
+                int val;
+                if (int.TryParse(comboBox1.Text, out val))
+                    return val;
+                else return -1;
+            }
         }
 
-        public PickForm(int[] b, int val)
+        public PickForm(ValueFlag[] b, int val)
         {
             InitializeComponent();
             comboBox1.Items.Add("None");
             for (int i = 1; i <= 9; i++)
-                if (b[i] != 0)
+                if (b[i] != ValueFlag.Prohibited)
                     comboBox1.Items.Add(i);
             if( val < 1 || 9 <= val)
                 comboBox1.SelectedIndex = 0;
