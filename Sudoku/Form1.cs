@@ -165,9 +165,34 @@ namespace Sudoku
             RenewImage();
         }
 
+        private bool DecideByCellDirectly()
+        {
+            foreach (Cell c in Cells)
+            {
+                if (c.flag.Skip(1).Count(x => x == ValueFlag.Unknown) == 1)
+                {
+                    int j = c.flag.Skip(1).Select((x, i) => new { x, i })
+                        .Single(y => y.x == ValueFlag.Unknown).i + 1;
+                    MessageBox.Show(c.index.ToString() + @" To " + j.ToString(), @"直接判定");
+                    SetValue(c, j);
+                    RenewImage();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
         enum CheckDirection { X, Y, G }
 
-        private bool CheckByDirection(CheckDirection _d, int depth)
+
+        /// <summary>
+        /// 周囲の決定状況から特定のマスにしか入らない数字を探す
+        /// </summary>
+        /// <param name="_d">縦・横・グループ</param>
+        /// <param name="depth">検索の深さ（未実装）</param>
+        /// <returns></returns>
+        private bool DecideByBackwardDirection(CheckDirection _d, int depth)
         {
             IEnumerable<Cell> cs;
             for (int i = 1; i <= 9; i++)
@@ -187,7 +212,7 @@ namespace Sudoku
                     if (csj.Count() == depth)
                     {
                         Cell c = csj.Single();
-                        MessageBox.Show(c.index.ToString());
+                        MessageBox.Show(c.index.ToString() + @" To " + j.ToString(), @"自動確認");
                         SetValue(c, j);
                         RenewImage();
                         return true;
@@ -199,18 +224,26 @@ namespace Sudoku
 
         private void Check()
         {
-            while (
-            CheckByDirection(CheckDirection.X, 1) ||
-            CheckByDirection(CheckDirection.Y, 1) ||
-            CheckByDirection(CheckDirection.G, 1))
-            { }
+            while (true)
+            {
+                if (DecideByCellDirectly()) continue;
+                if (DecideByBackwardDirection(CheckDirection.X, 1)) continue;
+                if (DecideByBackwardDirection(CheckDirection.Y, 1)) continue;
+                if (DecideByBackwardDirection(CheckDirection.G, 1)) continue;
+                break;
+            }
             MessageBox.Show(@"機械的に決められるセルはありません。");
-
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             Check();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            var p = Utility.getCombinationChildFunc(new HashSet<Cell>(),
+                Cells.Where(x => x.index.Y == 1), 3);
         }
     }
 }

@@ -17,6 +17,7 @@ namespace Sudoku
     public class Cell
     {
         readonly public Point index;
+        public int number { get { return index.X + index.Y * 9 - 10; } }
         public int X { get { return index.X; } }
         public int Y { get { return index.Y; } }
         readonly public int Group;
