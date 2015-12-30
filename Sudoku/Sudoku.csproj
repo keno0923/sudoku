@@ -53,6 +53,9 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormPanelMessageBridge.cs" />
+    <Compile Include="IFormMessageBridge.cs" />
+    <Compile Include="Panel.cs" />
     <Compile Include="PickForm.cs">
       <SubType>Form</SubType>
     </Compile>
