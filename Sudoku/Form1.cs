@@ -104,8 +104,15 @@ namespace Sudoku
             PickForm f = new PickForm(c.flag, c.value);
             if (f.ShowDialog(this) == DialogResult.OK)
             {
-                panel.SetValue(c, f.SelectedIndex);
-                RenewImage();
+                if (f.SelectedIndex == -1)
+                {
+                    RecieveMessage(@"現在、セルの消去はサポートしていません。","エラー");
+                }
+                else
+                {
+                    panel.SetValue(c, f.SelectedIndex);
+                    RenewImage();
+                }
             }
         }
 
