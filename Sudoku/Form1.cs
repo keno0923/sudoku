@@ -98,12 +98,66 @@ namespace Sudoku
 
         }
 
+        public bool SetValueCandidates(Cell c, IEnumerable<Cell> expCells, IEnumerable<int> values)
+        {
+            HashSet<Cell> cs = new HashSet<Cell>(expCells);
+            cs.Add(c);
+
+            bool isModified = false;
+            foreach (int v in values)
+            {
+                if (c.flag[v] != ValueFlag.Unknown)
+                {
+                    throw new ApplicationException(String.Format(
+                       @"Cannot Set Candidate {0} to Cell {1}", v, c.index));
+                }
+
+                if (cs.Select(x => x.X).Distinct().Count() == 1)
+                {
+                    foreach (Cell tgtCell in Cells.Where(x => x.X == c.X && x.flag[v] == ValueFlag.Unknown)
+                        .Except(cs))
+                    { 
+                        tgtCell.setFalseValue(v);
+                        isModified = true;
+                    }
+                }
+                if (cs.Select(x => x.Y).Distinct().Count() == 1)
+                {
+                    foreach (Cell tgtCell in Cells.Where(x => x.Y == c.Y && x.flag[v] == ValueFlag.Unknown)
+                        .Except(cs))
+                    {
+                        tgtCell.setFalseValue(v);
+                        isModified = true;
+                    }
+                }
+                if (cs.Select(x => x.Group).Distinct().Count() == 1)
+                {
+                    foreach (Cell tgtCell in Cells.Where(x => x.Group == c.Group && x.flag[v] == ValueFlag.Unknown)
+                        .Except(cs))
+                    {
+                        tgtCell.setFalseValue(v);
+                        isModified = true;
+                    }
+                }
+
+                foreach (var p in c.flag.Select((x,idx)=>new { x, idx })
+                    .Where(y=>!values.Contains(y.idx) && y.x == ValueFlag.Unknown))
+                {
+                    isModified = true;
+                    c.setFalseValue(p.idx);
+                }
+
+            }
+
+            return isModified;
+        }
+
         public bool SetValue(Cell c, int value)
         {
             if (!c.setTrueValue(value))
             {
-                MessageBox.Show("エラーが発生しました。");
-                return false;
+                throw new ApplicationException(String.Format(@"Cannot Set Value {0} to Cell {1}",
+                    value, c.index));
             }
 
             foreach (Cell co in Cells.Where(x => x.X == c.X && !x.Equals(c)))
@@ -131,11 +185,6 @@ namespace Sudoku
                 SetValue(c, f.SelectedIndex);
                 RenewImage();
             }
-        }
-
-        private void pictureBox1_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -169,10 +218,10 @@ namespace Sudoku
         {
             foreach (Cell c in Cells)
             {
-                if (c.flag.Skip(1).Count(x => x == ValueFlag.Unknown) == 1)
+                if (c.flag.Count(x => x == ValueFlag.Unknown) == 1)
                 {
-                    int j = c.flag.Skip(1).Select((x, i) => new { x, i })
-                        .Single(y => y.x == ValueFlag.Unknown).i + 1;
+                    int j = c.flag.Select((x, i) => new { x, i }).Skip(1)
+                        .Single(y => y.x == ValueFlag.Unknown).i;
                     MessageBox.Show(c.index.ToString() + @" To " + j.ToString(), @"直接判定");
                     SetValue(c, j);
                     RenewImage();
@@ -222,10 +271,59 @@ namespace Sudoku
             return false;
         }
 
+        private bool CheckByProcessA(CheckDirection _d)
+        {
+            IEnumerable<Cell> cs;
+            for (int i = 1; i <= 9; i++)
+            {
+                switch (_d)
+                {
+                    case CheckDirection.X: cs = Cells.Where(x => x.Y == i); break;
+                    case CheckDirection.Y: cs = Cells.Where(x => x.X == i); break;
+                    case CheckDirection.G: cs = Cells.Where(x => x.Group == i); break;
+                    default: throw new NotImplementedException();
+                }
+                int depth = 2;
+                foreach (HashSet<Cell> pair in Utility.getCombinationChildFunc(
+                    new HashSet<Cell>(), cs, depth))
+                {
+                    var s = pair.First().flag.Select((x, idx) => new { x, idx })
+                        .Where(y=>y.x == ValueFlag.Unknown).Select(z=>z.idx);
+                    if (s.Count() != depth)
+                        continue;
+                    bool isEqual = true;
+                    foreach( Cell c in pair.Skip(1))
+                    {
+                        var t = c.flag.Select((x, idx) => new { x, idx })
+                            .Where(y => y.x == ValueFlag.Unknown).Select(z => z.idx);
+                         isEqual &= s.SequenceEqual(t);
+                    }
+                    if( isEqual )
+                    {
+                        bool isModified = false;
+                        HashSet<Cell> elim = new HashSet<Cell>(cs.Except(pair));
+                        foreach (Cell c in pair)
+                        {
+                            isModified |= SetValueCandidates(c, pair.Except(Enumerable.Repeat(c,1)), s);
+                        }
+
+                        if (isModified)
+                        {
+                            MessageBox.Show(pair.First().index.ToString() + pair.Last().index.ToString());
+                            return true;
+                        }
+                    }
+                }
+            }
+        
+            return false;
+        }
+
         private void Check()
         {
             while (true)
             {
+                if (CheckByProcessA(CheckDirection.G)) continue;
                 if (DecideByCellDirectly()) continue;
                 if (DecideByBackwardDirection(CheckDirection.X, 1)) continue;
                 if (DecideByBackwardDirection(CheckDirection.Y, 1)) continue;

@@ -9,6 +9,7 @@ namespace Sudoku
 {
     public enum ValueFlag
     {
+        UnusedArea = -1,
         Prohibited,
         Unknown,
         Decided
@@ -30,7 +31,8 @@ namespace Sudoku
         public Cell(int x,int y)
         {
             index = new Point(x, y);
-            flag = new List<ValueFlag>(new ValueFlag[10]).Select(t=> ValueFlag.Unknown).ToArray();
+            flag = Enumerable.Repeat(ValueFlag.Unknown, 10).ToArray();
+            flag[0] = ValueFlag.UnusedArea;
             value = -1;
             Group = ((y-1) / 3) * 3 + ( (x-1) / 3 ) + 1; 
         }
@@ -66,6 +68,9 @@ namespace Sudoku
             if (val < 1 || val >= 10) return false;
             if (flag[val] == ValueFlag.Decided) return false;
             flag[val] = ValueFlag.Prohibited;
+            if (flag.All(x => x == ValueFlag.Prohibited || x == ValueFlag.UnusedArea))
+                throw new ApplicationException(String.Format(@"No Candidate is remained in Cell {0}",
+                    this.index));
             return true;
         }
 
